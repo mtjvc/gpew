@@ -29,10 +29,8 @@ def single_kernel_lnprior(p):
     amp, xcen, sigma, lna, lnalpha = p
 
     lnp = 0.0
-    #  lnp += -(lnalpha + 0.3) ** 2 / (2 * 1.0 ** 2)
 
-    if (-50. < lna < 0. 
-            and 8685. < xcen < 8690. and amp > 0. and sigma > 0.):
+    if (-50. < lna < 0. and p[1] > 0. and sigma > 0.):
         return lnp
 
     return -np.inf
@@ -56,7 +54,8 @@ def three_kernel_lnprior(p):
 
 
 def multiple_lines_lnprior(p):
-    amp1, xcen1, sigma1, amp2, xcen2, sigma2, gamma2, amp3, xcen3, sigma3, amp4, xcen4, sigma4, lna, lnalpha = p
+    amp1, xcen1, sigma1, amp2, xcen2, sigma2, gamma2,\
+            amp3, xcen3, sigma3, amp4, xcen4, sigma4, lna, lnalpha = p
 
     lnp = 0.0
     #  lnp += -(lnalpha + 0.3) ** 2 / (2 * 1.0 ** 2)
@@ -181,7 +180,6 @@ def single_line_three_kernels(compute_samples=True):
 
 
 def multiple_lines_single_kernel(compute_samples=True):
-    import matplotlib.pyplot as pl
 
     lcs = [8434.4, 8467.6, 8581.3, 8735.1]
 
@@ -240,7 +238,63 @@ def multiple_lines_single_kernel(compute_samples=True):
                     wlwidth=9, gpsamples=100)
 
 
+def hi_res_lnprior(p):
+    amp, xcen, sigma, gamma, lna, lnalpha = p
+
+    lnp = 0.0
+
+    if (-50. < lna < 0. and amp > 0.1 and sigma > 0. and sigma < 1.0 and gamma > 0. and
+            xcen > 5895.5 and xcen < 5896.5):
+        return lnp
+
+    return -np.inf
+
+
+def hi_res_spectrum(compute_samples=True):
+    d = np.loadtxt('spec_hires_short.txt').T
+
+    sel = (d[0] > 589.3) & (d[0] < 589.9)
+
+    lines = [(d[0][sel][::10] * 10, d[1][sel][::10], d[2][sel][::10])]
+
+    pfiles = [profiles.lorentzian]
+
+    pparn = np.cumsum([0] +\
+            [len(inspect.getargspec(i)[0]) - 1 for i in pfiles])
+
+    initial = [0.5, 5896, 0.5, 1.0, -6.1, 0.3]
+
+    nwalkers = 128
+    ndim = len(initial)
+
+    niter = 100
+    data = [lines, pfiles, pparn, single_kernel_noisemodel,
+            hi_res_lnprior]
+
+    p0 = np.array([np.array(initial) + 1e-2 * np.random.randn(ndim)
+                   for i in xrange(nwalkers)])
+
+    if compute_samples:
+        sampler = emcee.EnsembleSampler(nwalkers, ndim, gpew.lnprob, args=data)
+        p0, lnp, _ = sampler.run_mcmc(p0, niter)
+        sampler.reset()
+
+        p = p0[np.argmax(lnp)]
+        p0 = [p + 1e-2 * np.random.randn(ndim) for i in xrange(nwalkers)]
+        p0, _, _ = sampler.run_mcmc(p0, niter)
+
+        samples = sampler.flatchain
+        gpew.save_samples('test.npy', samples)
+
+    else:
+        samples = gpew.load_samples('test.npy')
+
+    gpew.plot_lines(lines, pfiles, pparn, single_kernel_noisemodel, samples,
+                    nwalkers, wlwidth=5, gpsamples=20, profilepoints=500)
+
+
 #  single_line_single_kernel(compute_samples=1)
-#  single_line_three_kernels(compute_samples=0)
-multiple_lines_single_kernel(compute_samples=0)
+single_line_three_kernels(compute_samples=1)
+#  multiple_lines_single_kernel(compute_samples=0)
+#  hi_res_spectrum(1)
 

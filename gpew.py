@@ -111,15 +111,17 @@ def plot_lines(lines, profiles, pparn, noisemodel, samples, nwalkers, iamp=[0],
             pars = s[pparn[i]:pparn[i + 1]]
             profile = 1 - profiles[i](line[0], *pars)
             profilexs = 1 - profiles[i](xs + mxcen, *pars)
-            nmp = np.exp(s[pparn[-1]:])
-            nm = noisemodel(nmp)
-            nm.compute(line[0], line[2])
-
-            m = nm.sample_conditional(line[1] - profile,
-                                      xs + mxcen) + profilexs
-            models.append(m)
             clean_models.append(profilexs)
             ew.append(np.sum((1 - profilexs[1:]) * (xs[1:] - xs[:-1])))
+
+            if noisemodel is not None:
+                nmp = np.exp(s[pparn[-1]:])
+                nm = noisemodel(nmp)
+                nm.compute(line[0], line[2])
+
+                m = nm.sample_conditional(line[1] - profile,
+                                          xs + mxcen) + profilexs
+                models.append(m)
 
         offset += mamp if i else 0
 
@@ -135,10 +137,11 @@ def plot_lines(lines, profiles, pparn, noisemodel, samples, nwalkers, iamp=[0],
         y1, y2 = lavg + lstd + offset, lavg - lstd + offset
         pl.fill_between(xs, y1, y2, alpha=0.3)
 
-        gpa = np.array(models).T
-        gpstd = np.std(gpa, axis=1)
-        gpavg = np.average(gpa, axis=1)
-        y1, y2 = gpavg + gpstd + offset, gpavg - gpstd + offset
-        pl.fill_between(xs, y1, y2, color='r', alpha=0.3)
+        if len(models):
+            gpa = np.array(models).T
+            gpstd = np.std(gpa, axis=1)
+            gpavg = np.average(gpa, axis=1)
+            y1, y2 = gpavg + gpstd + offset, gpavg - gpstd + offset
+            pl.fill_between(xs, y1, y2, color='r', alpha=0.3)
 
     pl.show()
