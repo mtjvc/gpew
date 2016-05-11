@@ -74,7 +74,7 @@ ndim = len(initial)
 
 # 100 is not enough! Make sure the convergence is satisfacory before
 # accepting any results!
-niter = 500
+niter = 100
 
 # Replace with None to get a trivial chi2 like noise model
 noisemodel = single_kernel_noisemodel 
