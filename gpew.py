@@ -21,13 +21,14 @@ def lnlike(p, lines, profiles, pparn, noisemodel):
 
     :param profiles:
         Profiles for each of the lines. The length of this array must
-        mach the length of `lines`.
+        match the length of `lines`.
 
     :param pparn:
         Array of cumsum of number of parameters for each profile starting
         with 0.
 
     :param noisemodel:
+        Can be `None` or something like:
         gp = george.GP(a * kernels.ExpSquaredKernel(alpha) +
                        b * kernels.ExpSquaredKernel(beta) +
                        c * kernels.ExpSquaredKernel(zeta))
